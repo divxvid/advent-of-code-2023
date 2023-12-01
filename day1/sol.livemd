@@ -1,0 +1,106 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day1
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Part1
+
+```elixir
+input1 = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+input1
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_charlist(&1))
+|> Enum.map(fn x -> Enum.filter(x, &(&1 >= 48 and &1 <= 57)) end)
+|> Enum.map(&List.to_tuple(&1))
+|> Enum.map(fn tup ->
+  first_digit = elem(tup, 0) - 48
+  length = tuple_size(tup)
+  last_digit = elem(tup, length - 1) - 48
+  first_digit * 10 + last_digit
+end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+55002
+```
+
+## Part2
+
+```elixir
+input2 = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+defmodule Day1 do
+  def main(inp) do
+    inp
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn x -> getFirstDigit(x) * 10 + getLastDigit(String.reverse(x)) end)
+    |> Enum.sum()
+  end
+
+  def getFirstDigit(""), do: nil
+  def getFirstDigit("1" <> _), do: 1
+  def getFirstDigit("2" <> _), do: 2
+  def getFirstDigit("3" <> _), do: 3
+  def getFirstDigit("4" <> _), do: 4
+  def getFirstDigit("5" <> _), do: 5
+  def getFirstDigit("6" <> _), do: 6
+  def getFirstDigit("7" <> _), do: 7
+  def getFirstDigit("8" <> _), do: 8
+  def getFirstDigit("9" <> _), do: 9
+  def getFirstDigit("one" <> _), do: 1
+  def getFirstDigit("two" <> _), do: 2
+  def getFirstDigit("three" <> _), do: 3
+  def getFirstDigit("four" <> _), do: 4
+  def getFirstDigit("five" <> _), do: 5
+  def getFirstDigit("six" <> _), do: 6
+  def getFirstDigit("seven" <> _), do: 7
+  def getFirstDigit("eight" <> _), do: 8
+  def getFirstDigit("nine" <> _), do: 9
+  def getFirstDigit(x), do: getFirstDigit(String.slice(x, 1..-1))
+
+  def getLastDigit(""), do: nil
+  def getLastDigit("1" <> _), do: 1
+  def getLastDigit("2" <> _), do: 2
+  def getLastDigit("3" <> _), do: 3
+  def getLastDigit("4" <> _), do: 4
+  def getLastDigit("5" <> _), do: 5
+  def getLastDigit("6" <> _), do: 6
+  def getLastDigit("7" <> _), do: 7
+  def getLastDigit("8" <> _), do: 8
+  def getLastDigit("9" <> _), do: 9
+  def getLastDigit("eno" <> _), do: 1
+  def getLastDigit("owt" <> _), do: 2
+  def getLastDigit("eerht" <> _), do: 3
+  def getLastDigit("ruof" <> _), do: 4
+  def getLastDigit("evif" <> _), do: 5
+  def getLastDigit("xis" <> _), do: 6
+  def getLastDigit("neves" <> _), do: 7
+  def getLastDigit("thgie" <> _), do: 8
+  def getLastDigit("enin" <> _), do: 9
+  def getLastDigit(x), do: getLastDigit(String.slice(x, 1..-1))
+end
+
+input2
+|> Kino.Input.read()
+|> Day1.main()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+55093
+```
