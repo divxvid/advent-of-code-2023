@@ -1,0 +1,131 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day2
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+defmodule Day2Part1 do
+  @red_limit 12
+  @green_limit 13
+  @blue_limit 14
+
+  def solve(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.split(&1, ": ", trim: true))
+    |> Enum.map(&solve_each_game/1)
+    |> Enum.sum()
+  end
+
+  defp solve_each_game([game_number | [data]]) do
+    sets = String.split(data, "; ", trim: true)
+    sets_good? = sets |> Enum.map(&solve_each_set/1) |> Enum.all?()
+
+    case sets_good? do
+      true -> get_game_id(game_number)
+      false -> 0
+    end
+  end
+
+  defp solve_each_set(set) do
+    String.split(set, ", ", trim: true)
+    |> Enum.reduce(true, fn cube, acc ->
+      [count, color] = String.split(cube, " ", trim: true)
+      count = String.to_integer(count)
+
+      case color do
+        "red" -> acc and count <= @red_limit
+        "green" -> acc and count <= @green_limit
+        "blue" -> acc and count <= @blue_limit
+      end
+    end)
+  end
+
+  defp get_game_id("Game " <> game_id), do: String.to_integer(game_id)
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day2Part1, <<70, 79, 82, 49, 0, 0, 14, ...>>, {:get_game_id, 1}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day2Part1.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2545
+```
+
+## Part 2
+
+```elixir
+defmodule Day2Part2 do
+  def solve(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.split(&1, ":"))
+    |> Enum.map(&solve_each_game/1)
+    |> Enum.map(fn countMap -> Map.values(countMap) |> Enum.product() end)
+    |> Enum.sum()
+  end
+
+  defp solve_each_game([_ | [data]]) do
+    sets = String.split(data, "; ", trim: true)
+    count_maps_for_sets = Enum.map(sets, &get_counts_for_set/1)
+
+    Enum.reduce(count_maps_for_sets, %{}, fn cm, acc ->
+      %{
+        "red" => max(Map.get(cm, "red", 0), Map.get(acc, "red", 0)),
+        "green" => max(Map.get(cm, "green", 0), Map.get(acc, "green", 0)),
+        "blue" => max(Map.get(cm, "blue", 0), Map.get(acc, "blue", 0))
+      }
+    end)
+  end
+
+  defp get_counts_for_set(set) do
+    cubes = String.split(set, ", ", trim: true)
+
+    Enum.reduce(cubes, Map.new(), fn cube, acc ->
+      [count, color] = String.split(cube, " ", trim: true)
+      count = String.to_integer(count)
+      Map.put(acc, color, count)
+    end)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day2Part2, <<70, 79, 82, 49, 0, 0, 13, ...>>, {:get_counts_for_set, 1}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day2Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+78111
+```
