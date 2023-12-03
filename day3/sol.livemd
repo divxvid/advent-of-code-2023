@@ -1,0 +1,296 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 3
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Part1
+
+```elixir
+input = Kino.Input.textarea("Enter input here:")
+```
+
+```elixir
+defmodule Day3Part1 do
+  def solve(input) do
+    grid =
+      String.split(input, "\n", trim: true)
+      |> Enum.map(&(String.to_charlist(&1) |> List.to_tuple()))
+      |> List.to_tuple()
+
+    num_rows = tuple_size(grid)
+    num_cols = tuple_size(elem(grid, 0))
+
+    parse_grid(0, 0, num_rows, num_cols, grid)
+    |> Enum.filter(fn {_, ok?} -> ok? end)
+    |> Enum.map(fn {x, _} -> x end)
+    |> Enum.sum()
+  end
+
+  defp parse_grid(r, c, num_rows, num_cols, grid) when c == num_cols do
+    parse_grid(r + 1, 0, num_cols, num_rows, grid)
+  end
+
+  defp parse_grid(r, _, num_rows, _, _) when r == num_rows do
+    # this is the base case, just return back an empty list
+    []
+  end
+
+  defp parse_grid(r, c, num_rows, num_cols, grid) do
+    chr = elem(elem(grid, r), c)
+
+    cond do
+      chr in 48..57 -> parse_number(r, c, num_rows, num_cols, grid, 0, false)
+      true -> parse_grid(r, c + 1, num_rows, num_cols, grid)
+    end
+  end
+
+  defp parse_number(r, c, num_rows, num_cols, grid, num, ok?) when c < num_cols and c >= 0 do
+    chr = elem(elem(grid, r), c)
+
+    if chr in 48..57 do
+      feasible? =
+        case ok? do
+          true ->
+            true
+
+          false ->
+            Enum.any?([
+              check_feasibility(r + 1, c, num_rows, num_cols, grid),
+              check_feasibility(r - 1, c, num_rows, num_cols, grid),
+              check_feasibility(r, c + 1, num_rows, num_cols, grid),
+              check_feasibility(r, c - 1, num_rows, num_cols, grid),
+              check_feasibility(r + 1, c + 1, num_rows, num_cols, grid),
+              check_feasibility(r + 1, c - 1, num_rows, num_cols, grid),
+              check_feasibility(r - 1, c + 1, num_rows, num_cols, grid),
+              check_feasibility(r - 1, c - 1, num_rows, num_cols, grid)
+            ])
+        end
+
+      parse_number(r, c + 1, num_rows, num_cols, grid, num * 10 + (chr - 48), feasible?)
+    else
+      [{num, ok?} | parse_grid(r, c, num_rows, num_cols, grid)]
+    end
+  end
+
+  defp parse_number(r, c, num_rows, num_cols, grid, num, ok?),
+    do: [{num, ok?} | parse_grid(r, c, num_rows, num_cols, grid)]
+
+  defp check_feasibility(r, c, num_rows, num_cols, grid)
+       when r < num_rows and c < num_cols and r >= 0 and c >= 0 do
+    chr = elem(elem(grid, r), c)
+
+    cond do
+      chr in 48..57 -> false
+      # dot
+      chr == 46 -> false
+      true -> true
+    end
+  end
+
+  defp check_feasibility(_, _, _, _, _), do: false
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day3Part1, <<70, 79, 82, 49, 0, 0, 19, ...>>, {:check_feasibility, 5}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day3Part1.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+550064
+```
+
+```elixir
+defmodule Day3Part2 do
+  def solve(input) do
+    grid =
+      String.split(input, "\n", trim: true)
+      |> Enum.map(&(String.to_charlist(&1) |> List.to_tuple()))
+      |> List.to_tuple()
+
+    num_rows = tuple_size(grid)
+    num_cols = tuple_size(elem(grid, 0))
+
+    parse_grid(0, 0, num_rows, num_cols, grid)
+    |> Enum.filter(&(length(&1) == 2))
+    |> Enum.map(&Enum.product(&1))
+    |> Enum.sum()
+  end
+
+  defp parse_grid(r, c, num_rows, num_cols, grid) when c == num_cols do
+    parse_grid(r + 1, 0, num_cols, num_rows, grid)
+  end
+
+  defp parse_grid(r, _, num_rows, _, _) when r == num_rows do
+    # this is the base case, just return back an empty list
+    []
+  end
+
+  defp parse_grid(r, c, num_rows, num_cols, grid) do
+    chr = elem(elem(grid, r), c)
+
+    if chr == 42 do
+      # asterisk/gear
+      [
+        parse_gear(r, c, num_rows, num_cols, grid)
+        | parse_grid(r, c + 1, num_rows, num_cols, grid)
+      ]
+    else
+      parse_grid(r, c + 1, num_rows, num_cols, grid)
+    end
+  end
+
+  defp parse_gear(r, c, num_rows, num_cols, grid) do
+    {tl, tc, tr} = {
+      get_neighbor(r - 1, c - 1, num_rows, num_cols, grid),
+      get_neighbor(r - 1, c, num_rows, num_cols, grid),
+      get_neighbor(r - 1, c + 1, num_rows, num_cols, grid)
+    }
+
+    {bl, bc, br} = {
+      get_neighbor(r + 1, c - 1, num_rows, num_cols, grid),
+      get_neighbor(r + 1, c, num_rows, num_cols, grid),
+      get_neighbor(r + 1, c + 1, num_rows, num_cols, grid)
+    }
+
+    top_row =
+      cond do
+        is_digit?(tl) and is_digit?(tc) and is_digit?(tr) ->
+          [parse_number(r - 1, c - 1, num_cols, grid)]
+
+        is_digit?(tl) and is_digit?(tc) and not is_digit?(tr) ->
+          [parse_number(r - 1, c - 1, num_cols, grid)]
+
+        is_digit?(tl) and not is_digit?(tc) and is_digit?(tr) ->
+          [parse_number(r - 1, c - 1, num_cols, grid), parse_number(r - 1, c + 1, num_cols, grid)]
+
+        is_digit?(tl) and not is_digit?(tc) and not is_digit?(tr) ->
+          [parse_number(r - 1, c - 1, num_cols, grid)]
+
+        not is_digit?(tl) and is_digit?(tc) and is_digit?(tr) ->
+          [parse_number(r - 1, c, num_cols, grid)]
+
+        not is_digit?(tl) and is_digit?(tc) and not is_digit?(tr) ->
+          [parse_number(r - 1, c, num_cols, grid)]
+
+        not is_digit?(tl) and not is_digit?(tc) and is_digit?(tr) ->
+          [parse_number(r - 1, c + 1, num_cols, grid)]
+
+        true ->
+          []
+      end
+
+    bot_row =
+      cond do
+        is_digit?(bl) and is_digit?(bc) and is_digit?(br) ->
+          [parse_number(r + 1, c - 1, num_cols, grid)]
+
+        is_digit?(bl) and is_digit?(bc) and not is_digit?(br) ->
+          [parse_number(r + 1, c - 1, num_cols, grid)]
+
+        is_digit?(bl) and not is_digit?(bc) and is_digit?(br) ->
+          [parse_number(r + 1, c - 1, num_cols, grid), parse_number(r + 1, c + 1, num_cols, grid)]
+
+        is_digit?(bl) and not is_digit?(bc) and not is_digit?(br) ->
+          [parse_number(r + 1, c - 1, num_cols, grid)]
+
+        not is_digit?(bl) and is_digit?(bc) and is_digit?(br) ->
+          [parse_number(r + 1, c, num_cols, grid)]
+
+        not is_digit?(bl) and is_digit?(bc) and not is_digit?(br) ->
+          [parse_number(r + 1, c, num_cols, grid)]
+
+        not is_digit?(bl) and not is_digit?(bc) and is_digit?(br) ->
+          [parse_number(r + 1, c + 1, num_cols, grid)]
+
+        true ->
+          []
+      end
+
+    left =
+      case get_neighbor(r, c - 1, num_rows, num_cols, grid) |> is_digit?() do
+        true -> [parse_number(r, c - 1, num_cols, grid)]
+        false -> []
+      end
+
+    right =
+      case get_neighbor(r, c + 1, num_rows, num_cols, grid) |> is_digit?() do
+        true -> [parse_number(r, c + 1, num_cols, grid)]
+        false -> []
+      end
+
+    top_row ++ bot_row ++ left ++ right
+  end
+
+  defp parse_number(r, c, num_cols, grid) do
+    {fr, fc} = get_first_digit(r, c, num_cols, grid)
+    parse_num_from_start(fr, fc, num_cols, grid, 0)
+  end
+
+  defp parse_num_from_start(r, c, num_cols, grid, num) when c < num_cols do
+    chr = elem(elem(grid, r), c)
+
+    if chr in 48..57 do
+      parse_num_from_start(r, c + 1, num_cols, grid, num * 10 + (chr - 48))
+    else
+      num
+    end
+  end
+
+  defp parse_num_from_start(_, _, _, _, num), do: num
+
+  defp get_first_digit(r, c, num_cols, grid) when c < num_cols and c >= 0 do
+    chr = elem(elem(grid, r), c)
+
+    if chr in 48..57 do
+      get_first_digit(r, c - 1, num_cols, grid)
+    else
+      {r, c + 1}
+    end
+  end
+
+  defp get_first_digit(r, c, _, _), do: {r, c + 1}
+
+  defp is_digit?(d), do: d in 48..58
+
+  defp get_neighbor(r, c, num_rows, num_cols, grid)
+       when r < num_rows and r >= 0 and c < num_cols and c >= 0 do
+    elem(elem(grid, r), c)
+  end
+
+  # ascii code of a dot
+  defp get_neighbor(_, _, _, _, _), do: 46
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day3Part2, <<70, 79, 82, 49, 0, 0, 35, ...>>, {:get_neighbor, 5}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day3Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+85010461
+```
