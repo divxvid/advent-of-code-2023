@@ -1,0 +1,147 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day4
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+defmodule Day4Part1 do
+  def solve(input) do
+    String.split(input, "\n", trim: true)
+    |> Enum.map(fn line ->
+      [_, numbers] = String.split(line, ": ")
+      [winning | [have]] = String.split(numbers, " | ", trim: true)
+      winning = String.split(winning, " ", trim: true) |> Enum.map(&String.to_integer/1)
+      have = String.split(have, " ", trim: true) |> Enum.map(&String.to_integer/1)
+      find_score(winning, have)
+    end)
+    |> Enum.sum()
+  end
+
+  defp find_score(winning, have) do
+    set =
+      Enum.reduce(winning, MapSet.new(), fn x, acc ->
+        MapSet.put(acc, x)
+      end)
+
+    winning_cards = Enum.filter(have, fn x -> MapSet.member?(set, x) end)
+    len = length(winning_cards)
+
+    case len do
+      0 -> 0
+      x -> 2 ** (x - 1)
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day4Part1, <<70, 79, 82, 49, 0, 0, 12, ...>>, {:find_score, 2}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day4Part1.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+23847
+```
+
+## Part 2
+
+```elixir
+defmodule Day4Part2 do
+  def solve(input) do
+    cards_won =
+      String.split(input, "\n", trim: true)
+      |> Enum.reduce(Map.new(), fn line, acc ->
+        [card, numbers] = String.split(line, ": ", trim: true)
+        [_, card_number] = String.split(card, " ", trim: true)
+        card_number = String.to_integer(card_number)
+        [winning | [have]] = String.split(numbers, " | ", trim: true)
+        winning = String.split(winning, " ", trim: true) |> Enum.map(&String.to_integer/1)
+        have = String.split(have, " ", trim: true) |> Enum.map(&String.to_integer/1)
+        num_cards_won = find_score(winning, have)
+        Map.put(acc, card_number, num_cards_won)
+      end)
+
+    all_counts =
+      Enum.reduce(cards_won, Map.new(), fn {card_number, _}, acc ->
+        find_total_count(card_number, cards_won, acc)
+      end)
+
+    Enum.reduce(all_counts, 0, fn {_, v}, acc -> v + acc end)
+  end
+
+  defp find_total_count(card_number, cards_won, memo) do
+    if not Map.has_key?(cards_won, card_number) do
+      memo
+    else
+      if Map.has_key?(memo, card_number) do
+        memo
+      else
+        count = Map.get(cards_won, card_number)
+
+        if count == 0 do
+          Map.put(memo, card_number, 1)
+        else
+          memo =
+            Enum.reduce((card_number + 1)..(card_number + count), memo, fn c_num, acc ->
+              find_total_count(c_num, cards_won, acc)
+            end)
+
+          total_children_counts =
+            (card_number + 1)..(card_number + count) |> Enum.map(&Map.get(memo, &1)) |> Enum.sum()
+
+          # +1 because of itself.
+          Map.put(memo, card_number, total_children_counts + 1)
+        end
+      end
+    end
+  end
+
+  defp find_score(winning, have) do
+    set =
+      Enum.reduce(winning, MapSet.new(), fn x, acc ->
+        MapSet.put(acc, x)
+      end)
+
+    winning_cards = Enum.filter(have, fn x -> MapSet.member?(set, x) end)
+    length(winning_cards)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day4Part2, <<70, 79, 82, 49, 0, 0, 18, ...>>, {:find_score, 2}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day4Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+8570000
+```
