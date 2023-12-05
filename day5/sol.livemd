@@ -1,0 +1,209 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day 5
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+  |> Enum.map(&String.split(&1, "\n", trim: true))
+
+[[seeds] | maps] = lines
+
+# we get the integer list of seeds
+# consumes the seeds text
+["seeds", seeds] = String.split(seeds, ": ", trim: true)
+
+seeds =
+  String.split(seeds, " ", trim: true)
+  |> Enum.map(&String.to_integer/1)
+
+# processing the maps to get them as list of int 
+maps =
+  maps
+  # discarding the text about maps since it's static
+  |> Enum.map(&tl/1)
+  |> Enum.map(fn mp ->
+    Enum.map(mp, fn row ->
+      String.split(row, " ", trim: true)
+      |> Enum.map(&String.to_integer/1)
+    end)
+  end)
+
+# Now we have seeds and maps as list of integers
+# We now create tuple of ranges to filter out the stuff
+maps =
+  maps
+  |> Enum.map(fn mappa ->
+    Enum.map(mappa, fn [dst, src, cnt] ->
+      {src..(src + cnt - 1), dst..(dst + cnt - 1)}
+    end)
+  end)
+
+seeds
+|> Enum.map(fn seed ->
+  Enum.reduce(maps, seed, fn layer, curr ->
+    match =
+      Enum.filter(layer, fn {fst, _} ->
+        curr in fst
+      end)
+
+    case match do
+      # does not match any range so matches with itself
+      [] -> curr
+      [{start1.._, start2.._}] -> start2 + curr - start1
+    end
+  end)
+end)
+|> Enum.min()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+551761867
+```
+
+## Part 2
+
+```elixir
+defmodule Day5Part2 do
+  def solve(input) do
+    lines =
+      input
+      |> String.split("\n\n", trim: true)
+      |> Enum.map(&String.split(&1, "\n", trim: true))
+
+    [[seeds] | maps] = lines
+
+    # we get the integer list of seeds
+    # consumes the seeds text
+    ["seeds", seeds] = String.split(seeds, ": ", trim: true)
+
+    seeds =
+      String.split(seeds, " ", trim: true)
+      |> Enum.map(&String.to_integer/1)
+      |> Enum.chunk_every(2)
+      |> Enum.map(fn [start | [cnt]] -> start..(start + cnt - 1) end)
+
+    # processing the maps to get them as list of int 
+    maps =
+      maps
+      # discarding the text about maps since it's static
+      |> Enum.map(&tl/1)
+      |> Enum.map(fn mp ->
+        Enum.map(mp, fn row ->
+          String.split(row, " ", trim: true)
+          |> Enum.map(&String.to_integer/1)
+        end)
+      end)
+
+    # Now we have seeds and maps as list of integers
+    # We now create tuple of ranges to filter out the stuff
+    maps =
+      maps
+      |> Enum.map(fn mappa ->
+        Enum.map(mappa, fn [dst, src, cnt] ->
+          {src..(src + cnt - 1), dst..(dst + cnt - 1)}
+        end)
+      end)
+
+    final_ranges =
+      Enum.reduce(maps, seeds, fn layer, curr_range ->
+        intersect_ranges(layer, curr_range)
+      end)
+      |> Enum.sort()
+
+    [hd | _] = final_ranges
+    ans.._ = hd
+    ans
+  end
+
+  defp intersect_ranges(layer, curr_range) do
+    sorted_range = Enum.sort(curr_range)
+    sorted_layer = Enum.sort(layer)
+    intersect(sorted_layer, sorted_range)
+  end
+
+  defp intersect(_, []), do: []
+  # check this once again
+  defp intersect([], x), do: x
+
+  defp intersect([layer_head | layer_tail], [range_head | range_tail]) do
+    {src_rng, dst_rng} = layer_head
+    left..right = range_head
+    src_left..src_right = src_rng
+    dst_left..dst_right = dst_rng
+    offset = left - src_left
+
+    cond do
+      # our range is completely outside any layer mapping
+      right < src_left ->
+        [range_head | intersect([layer_head | layer_tail], range_tail)]
+
+      # move to the next range
+      src_right < left ->
+        intersect(layer_tail, [range_head | range_tail])
+
+      # fully inside
+      left >= src_left and right <= src_right ->
+        [
+          (dst_left + offset)..(dst_left + offset + right - left)
+          | intersect([layer_head | layer_tail], range_tail)
+        ]
+
+      left < src_left and right <= src_right ->
+        [
+          left..(src_left - 1)
+          | [
+              dst_left..(dst_left + right - src_left)
+              | intersect([layer_head | layer_tail], range_tail)
+            ]
+        ]
+
+      left >= src_left and src_right < right ->
+        [
+          (dst_left + offset)..dst_right
+          | intersect(layer_tail, [(src_right + 1)..right | range_tail])
+        ]
+
+      left <= src_left and right >= src_right ->
+        [
+          left..(src_left - 1)
+          | [dst_left..dst_right | intersect(layer_tail, [(src_right + 1)..right | range_tail])]
+        ]
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day5Part2, <<70, 79, 82, 49, 0, 0, 21, ...>>, {:intersect, 2}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day5Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+57451709
+```
