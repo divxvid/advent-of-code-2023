@@ -1,0 +1,114 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day 6
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+defmodule Day6Part1 do
+  def solve(input) do
+    [time, distance] = String.split(input, "\n", trim: true)
+
+    ["Time", time] = String.split(time, ":", trim: true)
+    time = String.split(time, " ", trim: true) |> Enum.map(&String.to_integer/1)
+
+    ["Distance", distance] = String.split(distance, ":", trim: true)
+    distance = String.split(distance, " ", trim: true) |> Enum.map(&String.to_integer/1)
+
+    Enum.zip(time, distance)
+    |> Enum.map(fn {t, d} ->
+      0..t
+      |> Enum.filter(&(&1 * (t - &1) > d))
+      |> length()
+    end)
+    |> Enum.product()
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day6Part1, <<70, 79, 82, 49, 0, 0, 10, ...>>, {:solve, 1}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day6Part1.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1710720
+```
+
+## Part 2
+
+```elixir
+defmodule Day6Part2 do
+  def solve(input) do
+    [time, distance] = String.split(input, "\n", trim: true)
+
+    ["Time", time] = String.split(time, ":", trim: true)
+
+    time =
+      String.split(time, " ", trim: true)
+      |> Enum.reduce("", fn x, acc -> acc <> x end)
+      |> String.to_integer()
+
+    ["Distance", distance] = String.split(distance, ":", trim: true)
+
+    distance =
+      String.split(distance, " ", trim: true)
+      |> Enum.reduce("", fn x, acc -> acc <> x end)
+      |> String.to_integer()
+
+    # x(a-x) is a parabola and it's reflected along it's mid point
+    # we can do a binary search on the first half (it's increasing) and double the result
+    first_value = search(0, div(time, 2), time, distance, -1)
+    time - 2 * first_value + 1
+  end
+
+  defp search(left, right, _, _, guess) when right < left, do: guess
+
+  defp search(left, right, t, d, guess) do
+    mid = div(left + right, 2)
+    value = mid * (t - mid)
+
+    cond do
+      value <= d -> search(mid + 1, right, t, d, guess)
+      true -> search(left, mid - 1, t, d, mid)
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day6Part2, <<70, 79, 82, 49, 0, 0, 12, ...>>, {:search, 5}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day6Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+35349468
+```
