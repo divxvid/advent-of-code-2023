@@ -1,0 +1,225 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day 7
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+defmodule Day7Part1 do
+  @order %{
+    ?2 => 1,
+    ?3 => 2,
+    ?4 => 3,
+    ?5 => 4,
+    ?6 => 5,
+    ?7 => 6,
+    ?8 => 7,
+    ?9 => 8,
+    ?T => 9,
+    ?J => 10,
+    ?Q => 11,
+    ?K => 12,
+    ?A => 13
+  }
+
+  @precedence %{
+    high_card: 1,
+    one_pair: 2,
+    two_pair: 3,
+    three_of_kind: 4,
+    full_house: 5,
+    four_of_kind: 6,
+    five_of_kind: 7
+  }
+
+  def solve(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line ->
+      [hand, value] = String.split(line, " ", trim: true)
+      hand = String.to_charlist(hand) |> Enum.map(&@order[&1])
+      value = String.to_integer(value)
+      {hand, value}
+    end)
+    |> Enum.map(fn {hand, value} ->
+      type = get_type(hand)
+      {{type, hand}, value}
+    end)
+    |> Enum.sort_by(fn {{type, hand}, _} -> {@precedence[type], hand} end, :asc)
+    |> Enum.with_index(1)
+    |> Enum.map(fn {{_, value}, idx} -> idx * value end)
+    |> Enum.sum()
+  end
+
+  def get_type(data) do
+    case Enum.sort(data) do
+      [x, x, x, x, x] -> :five_of_kind
+      [x, x, x, x, _] -> :four_of_kind
+      [_, x, x, x, x] -> :four_of_kind
+      [y, y, x, x, x] -> :full_house
+      [x, x, x, y, y] -> :full_house
+      [_, _, x, x, x] -> :three_of_kind
+      [_, x, x, x, _] -> :three_of_kind
+      [x, x, x, _, _] -> :three_of_kind
+      [x, x, y, y, _] -> :two_pair
+      [x, x, _, y, y] -> :two_pair
+      [_, x, x, y, y] -> :two_pair
+      [x, x, _, _, _] -> :one_pair
+      [_, x, x, _, _] -> :one_pair
+      [_, _, x, x, _] -> :one_pair
+      [_, _, _, x, x] -> :one_pair
+      _ -> :high_card
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day7Part1, <<70, 79, 82, 49, 0, 0, 16, ...>>, {:get_type, 1}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day7Part1.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+253638586
+```
+
+## Part 2
+
+```elixir
+defmodule Day7Part2 do
+  @order %{
+    ?J => 0,
+    ?2 => 1,
+    ?3 => 2,
+    ?4 => 3,
+    ?5 => 4,
+    ?6 => 5,
+    ?7 => 6,
+    ?8 => 7,
+    ?9 => 8,
+    ?T => 9,
+    ?Q => 11,
+    ?K => 12,
+    ?A => 13
+  }
+
+  @precedence %{
+    high_card: 1,
+    one_pair: 2,
+    two_pair: 3,
+    three_of_kind: 4,
+    full_house: 5,
+    four_of_kind: 6,
+    five_of_kind: 7
+  }
+
+  def solve(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line ->
+      [hand, value] = String.split(line, " ", trim: true)
+      hand = String.to_charlist(hand) |> Enum.map(&@order[&1])
+      value = String.to_integer(value)
+      {hand, value}
+    end)
+    |> Enum.map(fn {hand, value} ->
+      type = get_type(hand)
+      {{type, hand}, value}
+    end)
+    |> Enum.sort_by(fn {{type, hand}, _} -> {@precedence[type], hand} end, :asc)
+    |> Enum.with_index(1)
+    |> Enum.map(fn {{_, value}, idx} -> idx * value end)
+    |> Enum.sum()
+  end
+
+  def get_type(data) do
+    case Enum.sort(data) do
+      [x, x, x, x, x] -> :five_of_kind
+      # four_of_kind
+      [0, 0, 0, 0, _] -> :five_of_kind
+      [x, x, x, x, _] -> :four_of_kind
+      [0, x, x, x, x] -> :five_of_kind
+      [_, x, x, x, x] -> :four_of_kind
+      # full_house
+      [0, 0, x, x, x] -> :five_of_kind
+      [y, y, x, x, x] -> :full_house
+      [0, 0, 0, y, y] -> :five_of_kind
+      [x, x, x, y, y] -> :full_house
+      # three_of_kind
+      [0, 0, 0, _, _] -> :four_of_kind
+      [0, _, x, x, x] -> :four_of_kind
+      [0, 0, x, x, x] -> :five_of_kind
+      [_, _, x, x, x] -> :three_of_kind
+      [0, x, x, x, _] -> :four_of_kind
+      [_, x, x, x, _] -> :three_of_kind
+      [x, x, x, _, _] -> :three_of_kind
+      # two_pair
+      [0, 0, y, y, _] -> :four_of_kind
+      [x, x, y, y, _] -> :two_pair
+      [0, 0, _, y, y] -> :four_of_kind
+      [x, x, _, y, y] -> :two_pair
+      [0, x, x, y, y] -> :full_house
+      [_, x, x, y, y] -> :two_pair
+      # one_pair
+      [0, 0, _, _, _] -> :three_of_kind
+      [x, x, _, _, _] -> :one_pair
+      [0, x, x, _, _] -> :three_of_kind
+      [_, x, x, _, _] -> :one_pair
+      [0, 0, x, x, _] -> :four_of_kind
+      [0, _, x, x, _] -> :three_of_kind
+      [_, _, x, x, _] -> :one_pair
+      [0, 0, 0, x, x] -> :five_of_kind
+      [0, 0, _, x, x] -> :four_of_kind
+      [0, _, _, x, x] -> :three_of_kind
+      [_, _, _, x, x] -> :one_pair
+      # high_card
+      [0, _, _, _, _] -> :one_pair
+      [0, 0, _, _, _] -> :three_of_kind
+      [0, 0, 0, _, _] -> :four_of_kind
+      [0, 0, 0, 0, _] -> :five_of_kind
+      _ -> :high_card
+    end
+  end
+
+  def getSortedStuff(stuff) do
+    Enum.sort_by(stuff, fn {type, data} -> {@precedence[type], data} end, :desc)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day7Part2, <<70, 79, 82, 49, 0, 0, 21, ...>>, {:getSortedStuff, 1}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day7Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+253253225
+```
