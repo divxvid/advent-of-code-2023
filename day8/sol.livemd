@@ -1,0 +1,129 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day8
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"},
+  {:math, "~> 0.6.0"}
+])
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please enter the input here:")
+```
+
+```elixir
+defmodule Day8Part1 do
+  def solve(input) do
+    [instr, map] = String.split(input, "\n\n", trim: true)
+    instr = String.to_charlist(instr)
+
+    instr_set =
+      String.split(map, "\n", trim: true)
+      |> Enum.reduce(Map.new(), fn line, acc ->
+        [src, left, right] = String.split(line, [" = (", ", ", ")"], trim: true)
+        Map.put(acc, src, %{"L" => left, "R" => right})
+      end)
+
+    follow("AAA", instr_set, instr, [], 0)
+  end
+
+  defp follow("ZZZ", _, _, _, distance), do: distance
+
+  defp follow(curr_node, instr_set, instr, [], distance),
+    do: follow(curr_node, instr_set, instr, instr, distance)
+
+  defp follow(curr_node, instr_set, instr, [curr_instr | tail], distance) do
+    case curr_instr do
+      ?L -> follow(instr_set[curr_node]["L"], instr_set, instr, tail, distance + 1)
+      ?R -> follow(instr_set[curr_node]["R"], instr_set, instr, tail, distance + 1)
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day8Part1, <<70, 79, 82, 49, 0, 0, 11, ...>>, {:follow, 5}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day8Part1.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+11911
+```
+
+## Part 2
+
+```elixir
+defmodule Day8Part2 do
+  def solve(input) do
+    [instr, map] = String.split(input, "\n\n", trim: true)
+    instr = String.to_charlist(instr)
+
+    instr_set =
+      String.split(map, "\n", trim: true)
+      |> Enum.reduce(Map.new(), fn line, acc ->
+        [src, left, right] = String.split(line, [" = (", ", ", ")"], trim: true)
+        Map.put(acc, src, %{"L" => left, "R" => right})
+      end)
+
+    # There is something weird about the dataset that the first "Z" ending word is x distnace away
+    # it loops back with the same distance x, so let's exploit that
+    distances =
+      Enum.map(instr_set, fn {k, _} -> k end)
+      |> Enum.filter(&(String.at(&1, 2) == "A"))
+      |> Enum.map(&follow(&1, instr, instr_set, [], 0))
+
+    Enum.reduce(distances, 1, fn x, acc ->
+      Math.lcm(x, acc)
+    end)
+  end
+
+  defp follow(node, instr, instr_set, [], distance),
+    do: follow(node, instr, instr_set, instr, distance)
+
+  defp follow(node, instr, instr_set, [curr_instr | tail], distance) do
+    last = String.at(node, 2)
+
+    case last do
+      "Z" ->
+        distance
+
+      _ ->
+        case curr_instr do
+          ?L -> follow(instr_set[node]["L"], instr, instr_set, tail, distance + 1)
+          ?R -> follow(instr_set[node]["R"], instr, instr_set, tail, distance + 1)
+        end
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day8Part2, <<70, 79, 82, 49, 0, 0, 14, ...>>, {:follow, 5}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day8Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+10151663816849
+```

@@ -1,0 +1,111 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day9
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("Enter input here:")
+```
+
+```elixir
+defmodule Day9Part1 do
+  def solve(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(
+      &(String.split(&1, " ", trim: true)
+        |> Enum.map(fn x -> String.to_integer(x) end))
+    )
+    |> Enum.map(&solve_one/1)
+    |> Enum.sum()
+  end
+
+  defp solve_one(data) do
+    next_sequence =
+      Enum.zip(data, Enum.slice(data, 1..-1))
+      |> Enum.map(fn {a, b} -> b - a end)
+
+    num_non_zeroes = Enum.filter(next_sequence, &(&1 != 0)) |> length()
+
+    case num_non_zeroes do
+      0 -> List.last(data)
+      _ -> List.last(data) + solve_one(next_sequence)
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day9Part1, <<70, 79, 82, 49, 0, 0, 11, ...>>, {:solve_one, 1}}
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day9Part1.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1725987467
+```
+
+## Part 2
+
+```elixir
+defmodule Day9Part2 do
+  def solve(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(
+      &(String.split(&1, " ", trim: true)
+        |> Enum.map(fn x -> String.to_integer(x) end))
+    )
+    |> Enum.map(&solve_one/1)
+    |> Enum.sum()
+  end
+
+  defp solve_one(data) do
+    next_sequence =
+      Enum.zip(data, Enum.slice(data, 1..-1))
+      |> Enum.map(fn {a, b} -> b - a end)
+
+    num_non_zeroes = Enum.filter(next_sequence, &(&1 != 0)) |> length()
+
+    case num_non_zeroes do
+      0 -> hd(data)
+      _ -> hd(data) - solve_one(next_sequence)
+    end
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Day9Part2, <<70, 79, 82, 49, 0, 0, 11, ...>>, {:solve_one, 1}}
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> Day9Part2.solve()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+971
+```
